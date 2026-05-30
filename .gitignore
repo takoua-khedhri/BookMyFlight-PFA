@@ -1,0 +1,18 @@
+# Backend
+BookMyFlight_Backend/target/
+*.class
+*.jar
+*.war
+
+# Frontend
+BookMyFlight_UI/node_modules/
+BookMyFlight_UI/build/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
