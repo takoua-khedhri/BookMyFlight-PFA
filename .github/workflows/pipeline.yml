@@ -63,10 +63,10 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: SonarCloud Scan
+      - name: Build and Analyze with SonarCloud
         run: |
           cd BookMyFlight_Backend
-          mvn sonar:sonar \
+          mvn clean verify sonar:sonar \
             -Dsonar.projectKey=takoua-khedhri_BookMyFlight-PFA \
             -Dsonar.organization=takoua-khedhri \
             -Dsonar.host.url=https://sonarcloud.io \
