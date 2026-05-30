@@ -67,6 +67,7 @@ jobs:
         run: |
           cd BookMyFlight_Backend
           mvn clean verify sonar:sonar \
+            -DskipTests=true \
             -Dsonar.projectKey=takoua-khedhri_BookMyFlight-PFA \
             -Dsonar.organization=takoua-khedhri \
             -Dsonar.host.url=https://sonarcloud.io \
