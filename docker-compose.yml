@@ -1,0 +1,51 @@
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_fbs
+    environment:
+      MYSQL_ROOT_PASSWORD: 1201
+      MYSQL_DATABASE: fbs
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - bookmyflight-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p1201"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./BookMyFlight_Backend
+    container_name: backend_bookmyflight
+    ports:
+      - "8980:8980"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/fbs
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 1201
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - bookmyflight-network
+
+  frontend:
+    build: ./BookMyFlight_UI
+    container_name: frontend_bookmyflight
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - bookmyflight-network
+
+volumes:
+  mysql_data:
+
+networks:
+  bookmyflight-network:
+    driver: bridge
