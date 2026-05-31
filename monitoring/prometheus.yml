@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'bookmyflight-backend'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['backend:8980']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: application
+        replacement: 'bookmyflight'
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'backend:8980'
