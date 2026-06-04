@@ -1,127 +1,113 @@
+// FlightList.js - Version améliorée
 import React from 'react';
 import { withRouter } from 'react-router-dom';
 
-/**
- * Child component for SearchFlight component
- * Renders list of flights on search
- */
 class FlightList extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            flights : null
+            flights: props.flights || []
+        };
+    }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.flights !== this.props.flights) {
+            this.setState({ flights: this.props.flights });
         }
     }
 
-    componentDidMount() {
-        this.setState({
-            flights : this.props.flights
-        });
-        console.log("flight list : " + this.props.flights)
-    }
-
-     /**
-     * this method calculate travel duration
-     */
-      calculateDuration = (f) => {
-        let t1 = new Date('1970-01-01T' + f.departureTime + 'Z')
-        let t2 = new Date('1970-01-01T' + f.arrivalTime + 'Z')
-        let hour = t1.getUTCHours() - t2.getUTCHours()
-        let min = t1.getUTCMinutes() - t2.getUTCMinutes()
-
-        if( hour < 0)
-        {
-            hour = 12+hour
+    calculateDuration = (f) => {
+        if (!f.departureTime || !f.arrivalTime) return 'N/A';
+        
+        try {
+            let t1 = new Date(`1970-01-01T${f.departureTime}:00`);
+            let t2 = new Date(`1970-01-01T${f.arrivalTime}:00`);
+            let diff = Math.abs(t1 - t2);
+            let hours = Math.floor(diff / 3600000);
+            let minutes = Math.floor((diff % 3600000) / 60000);
+            return `${hours}h ${minutes}min`;
+        } catch (error) {
+            return 'N/A';
         }
-        if(min < 0){
-            min = 60+min
-        }
+    };
 
-        return (hour +'hr '+min + 'min')
-
-    }
-
-    /** 
-     * Store flight data in local storage and redirects to Booking
-     */
     handleFlight = (flight) => {
         localStorage.setItem('plane', JSON.stringify(flight));
         this.props.history.push('/booking');
-    }
+    };
 
     render() {
-        if(!this.state.flights)
-            return null;
- 
-        const flightlist = this.state.flights.map(f => {
-            return (
-                <div className="card mr-4 mt-4" style={{width: 350, background: "#ffffff"}}>
-                    
-                    <div className="card-header">
-                        <h5>Flight {f.flightNumber}</h5>
-                    </div>
-                    
-                    <div className="card-body">
-                    <div className="row mb-2">
-                        <div className="col fw-bold">Source</div>
-                        <div className="col">{f.source}</div>
-                    </div>
-                    <div className="row mb-2">
-                        <div className="col fw-bold">Destination</div>
-                        <div className="col">{f.destination}</div>
-                    </div>
-                    <div className="row mb-2">
-                        <div className="col fw-bold">Travel Date</div>
-                        <div className="col">{f.travelDate}</div>
-                    </div>  
-                    <div className="row mb-2">
-                        <div className="col fw-bold">Takeoff Time</div>
-                        <div className="col">{f.arrivalTime}</div>
-                    </div>    
-                    <div className="row mb-2">
-                        <div className="col fw-bold">Landing Time</div>
-                        <div className="col">{f.departureTime}</div>
-                    </div>  
-                    <div className="row mb-2">
-                        <div className="col fw-bold">Duration</div>
-                        <div className="col">{this.calculateDuration(f)}</div>
-                    </div>  
-                    <div className="row mb-2">
-                        <div className="col fw-bold">Fare</div>
-                        <div className="col">{f.price}</div>
-                    </div>  
-                    <div className="row mb-2">
-                        <div className="col fw-bold">Available Seats</div>
-                        <div className="col">{f.availableSeats}</div>
-                    </div>  
-                    <br/>
-                        <button className="btn btn-dark mr-3" onClick={() => this.handleFlight(f)} >Book</button>
-                    </div>
-                                            
-                </div>
-            )
-        });
+        const { flights } = this.state;
 
-        
+        if (!flights || flights.length === 0) {
+            return (
+                <div className="text-center py-5">
+                    <h4>Aucun vol trouvé</h4>
+                    <p>Veuillez modifier vos critères de recherche</p>
+                </div>
+            );
+        }
+
         return (
             <div>
-                <h4>Scheduled Flight</h4>
-                <div style={styling.wrapper}>
-                    {flightlist}
+                <h3 className="mb-4" style={{ color: '#2c3e50' }}>Vols disponibles ({flights.length})</h3>
+                <div className="row">
+                    {flights.map((f, index) => (
+                        <div key={f.flightNumber || index} className="col-md-6 col-lg-4 mb-4">
+                            <div className="card h-100 shadow-sm hover-card">
+                                <div className="card-header bg-primary text-white">
+                                    <h5 className="mb-0">✈ Vol {f.flightNumber}</h5>
+                                </div>
+                                <div className="card-body">
+                                    <div className="row mb-2">
+                                        <div className="col-6 fw-bold">Départ:</div>
+                                        <div className="col-6">{f.source}</div>
+                                    </div>
+                                    <div className="row mb-2">
+                                        <div className="col-6 fw-bold">Arrivée:</div>
+                                        <div className="col-6">{f.destination}</div>
+                                    </div>
+                                    <div className="row mb-2">
+                                        <div className="col-6 fw-bold">Date:</div>
+                                        <div className="col-6">{f.travelDate}</div>
+                                    </div>
+                                    <div className="row mb-2">
+                                        <div className="col-6 fw-bold">Départ:</div>
+                                        <div className="col-6">{f.arrivalTime}</div>
+                                    </div>
+                                    <div className="row mb-2">
+                                        <div className="col-6 fw-bold">Arrivée:</div>
+                                        <div className="col-6">{f.departureTime}</div>
+                                    </div>
+                                    <div className="row mb-2">
+                                        <div className="col-6 fw-bold">Durée:</div>
+                                        <div className="col-6">{this.calculateDuration(f)}</div>
+                                    </div>
+                                    <div className="row mb-2">
+                                        <div className="col-6 fw-bold text-success">Prix:</div>
+                                        <div className="col-6 text-success fw-bold">{f.price} €</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-6 fw-bold">Sièges:</div>
+                                        <div className="col-6">{f.availableSeats}</div>
+                                    </div>
+                                </div>
+                                <div className="card-footer bg-white">
+                                    <button 
+                                        className="btn btn-primary w-100"
+                                        onClick={() => this.handleFlight(f)}
+                                        disabled={f.availableSeats === 0}
+                                    >
+                                        {f.availableSeats === 0 ? 'Complet' : 'Réserver'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
-            
         );
-        
-        
     }
 }
 
-let styling = { 
-    wrapper : {
-        display : "flex", 
-        flexWrap: "wrap"
-    }
-}
-
-export default withRouter (FlightList);
+export default withRouter(FlightList);

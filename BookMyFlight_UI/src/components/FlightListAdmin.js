@@ -1,178 +1,207 @@
+// FlightListAdmin.js - Version corrigée
 import React, { Component } from 'react';
 import FlightServiceRest from '../services/FlightServiceRest';
-import plane from '../assets/images/travel1.jpg';
 import Header from './Header';
+import Footer from './Footer';
 
-/**
- * @author Vikrant
- * @author Dhananjay
- * this component renders list of all flights
- * FlightServiceRest : Service for fetching all flights from database
- */
 class FlightListAdmin extends Component {
     constructor(props) {
         super(props);
-        // this.service = new FlightService();
         this.service = new FlightServiceRest();
-                this.state = {
-                    }
-        if(!localStorage.getItem('user')){
-            alert('Please Login')
-            this.props.history.push('/login')
-            
-        }
-        else{
-            if(JSON.parse(localStorage.getItem('user')).isadmin === 1 ){
-                
-            }
-            else{
-                alert('Access Denied')
-                this.props.history.push('/')
-               
-            }
-        }
+        this.state = {
+            flights: [],
+            loading: true,
+            error: ""
+        };
     }
-       
 
     componentDidMount() {
-        this.getFlights();
+        this.checkAuth();
+        this.loadFlights();
     }
 
-    /**
-     * This method interacts with service to fetch all flights
-     */
-    getFlights = () => {
-        this.service.getFlights().then(data => {
-            console.log(data);
-            this.setState({flights : data})
-        })
-    }
-
-    /**
-     * This method interacts with service to delete flight
-    */
-    onDelete = (fid) => {  
-
-        if(window.confirm("Are you sure you want to delete the flight " + fid + " ?")) {
-            this.service.deleteFlight(fid).then(response => {
-                this.getFlights();
-            })
+    checkAuth = () => {
+        if (!localStorage.getItem('user')) {
+            alert('Veuillez vous connecter');
+            this.props.history.push('/login');
+            return false;
         }
-    }
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user.isadmin !== 1) {
+            alert('Accès réservé aux administrateurs');
+            this.props.history.push('/');
+            return false;
+        }
+        return true;
+    };
 
-    /**
-     * This method stores flight data in local storage and redirects to UpdateFlight
-    */
+    loadFlights = async () => {
+        this.setState({ loading: true, error: "" });
+        try {
+            const data = await this.service.getFlights();
+            if (data && data.length > 0) {
+                this.setState({ flights: data, loading: false });
+            } else {
+                this.setState({ flights: [], loading: false });
+            }
+        } catch (error) {
+            console.error('Erreur chargement:', error);
+            this.setState({ error: "Erreur lors du chargement des vols", loading: false });
+        }
+    };
+
+    onDelete = async (fid) => {
+        if (window.confirm(`Êtes-vous sûr de vouloir supprimer le vol ${fid} ?`)) {
+            try {
+                await this.service.deleteFlight(fid);
+                alert('Vol supprimé avec succès');
+                this.loadFlights(); // Recharger la liste
+            } catch (error) {
+                alert('Erreur lors de la suppression');
+            }
+        }
+    };
+
     onEdit = (flight) => {
         localStorage.setItem('flight', JSON.stringify(flight));
-        console.log("flight to be updated : ",localStorage.getItem('flight'));
         this.props.history.push('/updateFlight');
-    }
+    };
 
-    /**
-     * this method calculate travel duration
-     */
     calculateDuration = (f) => {
-        let t1 = new Date('1970-01-01T' + f.departureTime + 'Z')
-        let t2 = new Date('1970-01-01T' + f.arrivalTime + 'Z')
-        let hour = t1.getUTCHours() - t2.getUTCHours()
-        let min = t1.getUTCMinutes() - t2.getUTCMinutes()
-
-        if( hour < 0)
-        {
-            hour = 12+hour
+        if (!f.departureTime || !f.arrivalTime) return 'N/A';
+        try {
+            let t1 = new Date(`1970-01-01T${f.departureTime}`);
+            let t2 = new Date(`1970-01-01T${f.arrivalTime}`);
+            let diff = Math.abs(t1 - t2);
+            let hours = Math.floor(diff / 3600000);
+            let minutes = Math.floor((diff % 3600000) / 60000);
+            return `${hours}h ${minutes}min`;
+        } catch (error) {
+            return 'N/A';
         }
-        if(min < 0){
-            min = 60+min
-        }
-
-        return (hour +'hr '+min + 'min')
-
-    }
+    };
 
     render() {
-        if(!localStorage.getItem('user')){
-            if(!this.state.flights)
-                return null;
-        }
-        else{
-            if(JSON.parse(localStorage.getItem('user')).isadmin === 1  )
-                if(!this.state.flights)
-                    return null;
-        }
-        
-       
+        const { flights, loading, error } = this.state;
 
-        const flightlist = this.state.flights.map(f => {
-            return (
-                <div className="card m-4 " style={{width: 350, height: "fit-content"}}>
-                    
-                        <div className="card-header">
-                            <h5>Flight {f.flightNumber}</h5>
-                        </div>
-                        
-                        <div className="card-body">
-                        <div className="row mb-2">
-                            <div className="col fw-bold">Source</div>
-                            <div className="col">{f.source}</div>
-                        </div>
-                        <div className="row mb-2">
-                            <div className="col fw-bold">Destination</div>
-                            <div className="col">{f.destination}</div>
-                        </div>
-                        <div className="row mb-2">
-                            <div className="col fw-bold">Travel Date</div>
-                            <div className="col">{f.travelDate}</div>
-                        </div>  
-                        <div className="row mb-2">
-                            <div className="col fw-bold">Takeoff Time</div>
-                            <div className="col">{f.arrivalTime}</div>
-                        </div>
-                        <div className="row mb-2">
-                            <div className="col fw-bold">Landing Time</div>
-                            <div className="col">{f.departureTime}</div>
-                        </div>    
-                        <div className="row mb-2">
-                            <div className="col fw-bold">Duration</div>
-                            <div className="col">{this.calculateDuration(f)}</div>
-                        </div>
-                        <div className="row mb-2">
-                            <div className="col fw-bold">Fare</div>
-                            <div className="col">{f.price}</div>
-                        </div>  
-                        <div className="row mb-2">
-                            <div className="col fw-bold">Available Seats</div>
-                            <div className="col">{f.availableSeats}</div>
-                        </div>  
-                        <br/>
-                            <button className="btn btn-dark mr-3" onClick={() => this.onDelete(f.flightNumber)}>Delete</button>
-                            <button className="btn btn-info" onClick={() => this.onEdit(f)}>Edit</button>
-                        </div>
-                        
-                    
-                </div>
-            )
-        });
+        if (!localStorage.getItem('user')) return null;
+        
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (user.isadmin !== 1) return null;
 
         return (
-            <div style={{backgroundImage: `url(${plane})`,overflow: 'hidden', height: '20000px'}}>
-                <Header/>
-                <div className="pt-5">
-                <div className="pt-3"  style={styling.wrapper}>
-                {flightlist}
+            <div>
+                <Header />
+                <div className="container py-5 mt-4">
+                    <div className="d-flex justify-content-between align-items-center mb-4">
+                        <h2 className="mb-0">
+                            <i className="fas fa-plane me-2 text-primary"></i>
+                            Gestion des vols
+                            <span className="badge bg-primary ms-2">{flights.length} vol(s)</span>
+                        </h2>
+                        <button 
+                            className="btn btn-success" 
+                            onClick={() => this.props.history.push('/addFlight')}
+                        >
+                            <i className="fas fa-plus-circle me-2"></i>
+                            Nouveau vol
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="alert alert-danger">
+                            <i className="fas fa-exclamation-circle me-2"></i>
+                            {error}
+                            <button className="btn btn-sm btn-outline-danger ms-3" onClick={this.loadFlights}>
+                                Réessayer
+                            </button>
+                        </div>
+                    )}
+
+                    {loading ? (
+                        <div className="text-center py-5">
+                            <div className="spinner-border text-primary" role="status">
+                                <span className="visually-hidden">Chargement...</span>
+                            </div>
+                            <p className="mt-3">Chargement des vols...</p>
+                        </div>
+                    ) : flights.length === 0 ? (
+                        <div className="alert alert-info text-center py-5">
+                            <i className="fas fa-info-circle fa-3x mb-3"></i>
+                            <h4>Aucun vol trouvé</h4>
+                            <p>Cliquez sur "Nouveau vol" pour ajouter votre premier vol.</p>
+                            <button className="btn btn-primary mt-2" onClick={() => this.props.history.push('/addFlight')}>
+                                <i className="fas fa-plus-circle me-2"></i>
+                                Ajouter un vol
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="row">
+                            {flights.map((flight) => (
+                                <div key={flight.flightNumber} className="col-md-6 col-lg-4 mb-4">
+                                    <div className="card h-100 shadow-sm border-0 rounded-4 hover-card">
+                                        <div className="card-header bg-gradient-primary text-white rounded-top-4">
+                                            <h5 className="mb-0">
+                                                <i className="fas fa-plane me-2"></i>
+                                                Vol {flight.flightNumber}
+                                            </h5>
+                                        </div>
+                                        <div className="card-body">
+                                            <div className="row mb-3">
+                                                <div className="col-6 text-center border-end">
+                                                    <div className="fw-bold fs-5">{flight.source}</div>
+                                                    <small className="text-muted">Départ</small>
+                                                    <div className="fw-bold">{flight.arrivalTime?.substring(0,5)}</div>
+                                                </div>
+                                                <div className="col-6 text-center">
+                                                    <div className="fw-bold fs-5">{flight.destination}</div>
+                                                    <small className="text-muted">Arrivée</small>
+                                                    <div className="fw-bold">{flight.departureTime?.substring(0,5)}</div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="d-flex justify-content-between mb-2">
+                                                <span className="text-muted">Date:</span>
+                                                <span className="fw-bold">{flight.travelDate}</span>
+                                            </div>
+                                            <div className="d-flex justify-content-between mb-2">
+                                                <span className="text-muted">Durée:</span>
+                                                <span className="fw-bold">{this.calculateDuration(flight)}</span>
+                                            </div>
+                                            <div className="d-flex justify-content-between mb-2">
+                                                <span className="text-muted">Prix:</span>
+                                                <span className="fw-bold text-success">{flight.price} €</span>
+                                            </div>
+                                            <div className="d-flex justify-content-between">
+                                                <span className="text-muted">Sièges:</span>
+                                                <span className={`fw-bold ${flight.availableSeats < 10 ? 'text-danger' : 'text-success'}`}>
+                                                    {flight.availableSeats}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="card-footer bg-white border-0 pb-3 d-flex gap-2">
+                                            <button 
+                                                className="btn btn-outline-warning flex-grow-1"
+                                                onClick={() => this.onEdit(flight)}
+                                            >
+                                                <i className="fas fa-edit me-1"></i> Modifier
+                                            </button>
+                                            <button 
+                                                className="btn btn-outline-danger flex-grow-1"
+                                                onClick={() => this.onDelete(flight.flightNumber)}
+                                            >
+                                                <i className="fas fa-trash-alt me-1"></i> Supprimer
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
-            </div>
+                <Footer />
             </div>
         );
-    }
-}
-
-let styling = { 
-    wrapper : {
-        height: "700px",
-        display : "flex", 
-        flexWrap: "wrap", 
-        justifyContent: "center"
     }
 }
 

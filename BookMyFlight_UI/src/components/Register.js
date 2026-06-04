@@ -1,147 +1,174 @@
-import React, { Component } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import UserService from '../services/UserService';
-import planeBG from "../assets/images/planebg1.jpg";
-import Footer from './Footer';
-import Header from './Header';
 
-/** 
- * @author Vikrant
- * This component will render Register page for the app 
- * UserService: Service for registering new user
-*/
-export default class Register extends Component {
+const userService = new UserService();
 
-	constructor(props){
-		super(props);
-		this.service=new UserService();
-		this.state={
-			userId:0,
-			fname:"",
-			email:"",
-			phone:0,
-			username:"",
-			password:"",
-			isadmin:0
-		}
-	}
+export default function Register() {
+  const history = useHistory();
+  const [form, setForm] = useState({
+    username: '', fname: '', email: '',
+    phone: '', password: '', confirm: '',
+  });
+  const [error, setError]   = useState('');
+  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
 
-	componentDidMount(){
-		
-	}
+  const handle = e => setForm({ ...form, [e.target.name]: e.target.value });
 
-	handleInput=(event)=>{
-		const name=event.target.name;
-		const value=event.target.value;
-		this.setState({
-			[name]:value
-		});
-	}
+  const submit = async e => {
+    e.preventDefault();
+    setError(''); setSuccess('');
 
-	/** this method is for password confirmation */ 
-	handlePass=(event)=>{
-		if(event.target.value!==this.state.password){
-			this.setState({cp:"Invalid Password!!"});
-			this.setState({flag:false});
-		}
-		else{
-			this.setState({cp:""});
-			this.setState({flag:true});
-		}
-	}
+    if (form.password !== form.confirm) {
+      setError('Les mots de passe ne correspondent pas.'); return;
+    }
+    if (form.phone.length < 8) {
+      setError('Numéro de téléphone invalide.'); return;
+    }
 
-	/** 
-	 * this method interacts with service to register new user
-	 * redirects to login page
-	*/
-	registerUser = () =>{
-		//alert('willing to register');
-		this.service.addUser(this.state).then(response=>{
-			if(response.status===200){
-				console.log(response.data);
-				this.props.history.push('/login/');
-			}
-		}).catch(error=>{
-			console.log(error);
-			alert('Registration failed');
-		});
-		this.setState({userId:0,
-		fname:"",
-		email:"",
-		phone:0,
-		username:"",
-		password:"",
-		isadmin:0
-	});
-		
-	}
+    setLoading(true);
+    const res = await userService.addUser({
+      username: form.username,
+      fname:    form.fname,
+      email:    form.email,
+      phone:    form.phone,
+      password: form.password,
+      isadmin:  0,
+    });
+    setLoading(false);
 
-	render(){
+    if (res.success) {
+      setSuccess('Compte créé avec succès ! Redirection...');
+      setTimeout(() => history.push('/login'), 2000);
+    } else {
+      setError(res.message);
+    }
+  };
 
-    return (
-        <div class='pt-5'>
-            <Header />
-			<div class="py-5" style={{backgroundImage: `url(${planeBG})`,overflow: 'hidden', height: '1000px'}}>
-				<div className="row mb-4">
-					<div className="col-lg-8 mx-auto text-center">
-					<h1 className="display-6" style={{color:'white', fontWeight:'50pt'}}>Registration</h1>
-					</div>
-				</div> 
-				<div className="row">
-				<div className="col-md-6 mx-auto">
-					<div className="card ">
-					<div className="card-header">
-                    <div className="bg-white shadow-sm pt-4 pl-2 pr-2 pb-2">
-                       
-                    <div className="tab-content">
-                        <div className="tab-pane fade show active pt-3">
-                            <form>
-                                <div className="form-group"> 
-									<h6><span className="form-label">Name</span></h6>
-										<input type="text" name="fname" value={this.state.fname} onChange={this.handleInput} required className="form-control" />
-								</div>
-                                <div className="form-group"> 
-									<h6><span className="form-label">Email</span></h6>
-										<input type="email" name="email" value={this.state.email} onChange={this.handleInput} required className="form-control" />
-								</div>
-                                <div className="form-group"> 
-									<h6><span className="form-label">Contact</span></h6>
-										<input  name="phone" pattern="[6-9][0-9]{9}" maxLength="10" value={this.state.phone} onChange={this.handleInput} required className="form-control" />
-								</div>
-                                <div className="form-group"> 
-									<h6><span className="form-label">Username</span></h6>
-										<input type="text" name="username" value={this.state.username} onChange={this.handleInput} required className="form-control" />
-								</div>
-                                <div className="form-group"> 
-									<h6><span className="form-label">Password</span></h6>
-										<input type="password" name="password" value={this.state.password} onChange={this.handleInput} required className="form-control" />
-								</div>
-                                <div className="form-group"> 
-									<h6><span className="form-label">Confirm Password</span></h6>
-										<input type="text" name="cpasswd" onChange={this.handlePass} className="form-control" required/><div className="text-danger">{this.state.cp} </div> 
-								</div>
-                                
-                                <div className="card-footer"> 
-								<button onClick={this.registerUser}  className="subscribe btn btn-primary btn-block shadow-sm" disabled={!this.state.flag}>Register</button>
-								
-								</div>      
-                            </form>
-                            
-                        </div>
-                    </div>
-                    <div classNameName="form-group" > 
-				
-                       <div ><Link className="card-link" to="/login"><button  type="button" className="btn  btn-link btn-block">Already registered? Login Now!</button></Link>  </div> 
-                    </div>
-                   </div>
-                </div>
-            </div>
+  return (
+    <div style={styles.page}>
+      <div style={styles.card}>
+
+        {/* Header */}
+        <div style={styles.header}>
+          <div style={styles.logo}>✈</div>
+          <h2 style={styles.title}>Créer un compte</h2>
+          <p style={styles.subtitle}>Rejoignez BookMyFlight</p>
         </div>
-		</div>
-	</div>
-	<Footer />
-            </div>
 
-    );
-	}
+        {/* Alerts */}
+        {error   && <div style={styles.alertErr}>{error}</div>}
+        {success && <div style={styles.alertOk}>{success}</div>}
+
+        <form onSubmit={submit} style={styles.form}>
+          <div style={styles.row}>
+            <Field label="Nom d'utilisateur" name="username" value={form.username} onChange={handle} icon="👤" />
+            <Field label="Nom complet"        name="fname"    value={form.fname}    onChange={handle} icon="📋" />
+          </div>
+          <div style={styles.row}>
+            <Field label="Email"    type="email" name="email" value={form.email} onChange={handle} icon="📧" />
+            <Field label="Téléphone" name="phone" value={form.phone} onChange={handle} icon="📱" />
+          </div>
+          <div style={styles.row}>
+            <Field label="Mot de passe"        type="password" name="password" value={form.password} onChange={handle} icon="🔒" />
+            <Field label="Confirmer le mot de passe" type="password" name="confirm" value={form.confirm} onChange={handle} icon="🔑" />
+          </div>
+
+          <button type="submit" style={loading ? styles.btnLoading : styles.btn} disabled={loading}>
+            {loading ? 'Création en cours...' : "S'inscrire"}
+          </button>
+        </form>
+
+        <p style={styles.footer}>
+          Déjà un compte ?{' '}
+          <span style={styles.link} onClick={() => history.push('/login')}>
+            Se connecter
+          </span>
+        </p>
+      </div>
+    </div>
+  );
 }
+
+function Field({ label, name, value, onChange, icon, type = 'text' }) {
+  return (
+    <div style={styles.field}>
+      <label style={styles.label}>{label}</label>
+      <div style={styles.inputWrap}>
+        <span style={styles.icon}>{icon}</span>
+        <input
+          required
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          style={styles.input}
+          placeholder={label}
+        />
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  page: {
+    minHeight: '100vh',
+    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: '20px',
+  },
+  card: {
+    background: 'rgba(255,255,255,0.97)',
+    borderRadius: '24px',
+    padding: '40px',
+    width: '100%', maxWidth: '680px',
+    boxShadow: '0 25px 60px rgba(0,0,0,0.25)',
+  },
+  header: { textAlign: 'center', marginBottom: '28px' },
+  logo: { fontSize: '48px', marginBottom: '8px' },
+  title: { margin: 0, fontSize: '26px', fontWeight: '700', color: '#2d3748' },
+  subtitle: { margin: '4px 0 0', color: '#718096', fontSize: '14px' },
+  alertErr: {
+    background: '#fff5f5', border: '1px solid #fc8181',
+    color: '#c53030', borderRadius: '10px',
+    padding: '12px 16px', marginBottom: '20px', fontSize: '14px',
+  },
+  alertOk: {
+    background: '#f0fff4', border: '1px solid #68d391',
+    color: '#276749', borderRadius: '10px',
+    padding: '12px 16px', marginBottom: '20px', fontSize: '14px',
+  },
+  form: { display: 'flex', flexDirection: 'column', gap: '16px' },
+  row: { display: 'flex', gap: '16px', flexWrap: 'wrap' },
+  field: { flex: 1, minWidth: '220px', display: 'flex', flexDirection: 'column', gap: '6px' },
+  label: { fontSize: '13px', fontWeight: '600', color: '#4a5568' },
+  inputWrap: {
+    display: 'flex', alignItems: 'center',
+    border: '2px solid #e2e8f0', borderRadius: '10px',
+    background: '#f7fafc', overflow: 'hidden',
+    transition: 'border-color 0.2s',
+  },
+  icon: { padding: '0 10px', fontSize: '16px' },
+  input: {
+    flex: 1, padding: '11px 12px 11px 0',
+    border: 'none', background: 'transparent',
+    fontSize: '14px', color: '#2d3748', outline: 'none',
+  },
+  btn: {
+    marginTop: '8px', padding: '14px',
+    background: 'linear-gradient(135deg, #667eea, #764ba2)',
+    color: '#fff', border: 'none', borderRadius: '12px',
+    fontSize: '16px', fontWeight: '700', cursor: 'pointer',
+    transition: 'transform 0.2s, box-shadow 0.2s',
+    boxShadow: '0 4px 15px rgba(102,126,234,0.4)',
+  },
+  btnLoading: {
+    marginTop: '8px', padding: '14px',
+    background: '#a0aec0', color: '#fff',
+    border: 'none', borderRadius: '12px',
+    fontSize: '16px', fontWeight: '700', cursor: 'not-allowed',
+  },
+  footer: { textAlign: 'center', marginTop: '20px', color: '#718096', fontSize: '14px' },
+  link: { color: '#667eea', fontWeight: '600', cursor: 'pointer' },
+};
